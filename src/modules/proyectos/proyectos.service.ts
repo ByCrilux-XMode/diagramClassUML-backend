@@ -1,9 +1,15 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, forwardRef, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PaginadoDto } from '../../common/dto/paginado.dto.js';
+import { ChatService } from '../chat/chat.service.js';
 import { Colaborador } from '../colaboradores/colaborador.entity.js';
+import { ConfigIaService } from '../config-ia/config-ia.service.js';
+import { EventosService } from '../eventos/eventos.service.js';
 import { PERMISO_EDITOR } from '../permisos/permiso.constantes.js';
+import { PlanesService } from '../planes/planes.service.js';
+import { PropuestasService } from '../propuestas/propuestas.service.js';
+import { TurnosService } from '../turnos/turnos.service.js';
 import { UsuariosService } from '../usuarios/usuarios.service.js';
 import { ActualizarProyectoDto } from './dto/actualizar-proyecto.dto.js';
 import { CrearProyectoDto } from './dto/crear-proyecto.dto.js';
@@ -12,10 +18,18 @@ import { Proyecto } from './proyecto.entity.js';
 
 @Injectable()
 export class ProyectosService {
+  private readonly logger = new Logger(ProyectosService.name);
+
   constructor(
     @InjectRepository(Proyecto) private readonly repositorioProyectos: Repository<Proyecto>,
     @InjectRepository(Colaborador) private readonly repositorioColaboradores: Repository<Colaborador>,
     private readonly usuariosService: UsuariosService,
+    @Inject(forwardRef(() => EventosService)) private readonly eventosService: EventosService,
+    @Inject(forwardRef(() => ChatService)) private readonly chatService: ChatService,
+    @Inject(forwardRef(() => PlanesService)) private readonly planesService: PlanesService,
+    @Inject(forwardRef(() => TurnosService)) private readonly turnosService: TurnosService,
+    @Inject(forwardRef(() => PropuestasService)) private readonly propuestasService: PropuestasService,
+    @Inject(forwardRef(() => ConfigIaService)) private readonly configIaService: ConfigIaService,
   ) {}
 
   async crear(creadorId: number, dto: CrearProyectoDto): Promise<Proyecto> {
@@ -61,6 +75,27 @@ export class ProyectosService {
     const proyecto = await this.buscarPorId(proyectoId);
     this.verificarCreador(proyecto, usuarioId);
     await this.repositorioProyectos.remove(proyecto);
+
+    // Sin FK entre Neon y Atlas: si no se limpia aquí, los documentos quedan
+    // huérfanos para siempre. La limpieza no revierte el borrado del proyecto.
+    try {
+      const [eventos, chat, planes, turnos, propuestas, config] = await Promise.all([
+        this.eventosService.eliminarPorProyecto(proyectoId),
+        this.chatService.eliminarPorProyecto(proyectoId),
+        this.planesService.eliminarPorProyecto(proyectoId),
+        this.turnosService.eliminarPorProyecto(proyectoId),
+        this.propuestasService.eliminarPorProyecto(proyectoId),
+        this.configIaService.eliminarPorProyecto(proyectoId),
+      ]);
+      this.logger.log(
+        `Proyecto ${proyectoId} eliminado: ${eventos} evento(s), ${chat.mensajes} mensaje(s), ${chat.salas} sala(s), ${planes} plan(es), ${turnos} turno(s), ${propuestas} propuesta(s), ${config} config(s) de IA.`,
+      );
+    } catch (err: unknown) {
+      this.logger.error(
+        `No se pudieron limpiar los datos de MongoDB del proyecto ${proyectoId}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+    }
   }
 
   async proyectosPorUsuario(
@@ -113,6 +148,21 @@ export class ProyectosService {
       relations: { permiso: true },
     });
     return colaborador?.permiso?.nombre ?? null;
+  }
+
+  /** Lectura: cualquier colaborador, incluido LECTOR. */
+  async verificarPermisoLectura(usuarioId: number, proyectoId: number): Promise<string> {
+    const rol = await this.verificarMiembro(usuarioId, proyectoId);
+    if (!rol) {
+      throw new ForbiddenException('No tienes acceso a este proyecto');
+    }
+    return rol;
+  }
+
+  async verificarCreadorProyecto(usuarioId: number, proyectoId: number): Promise<Proyecto> {
+    const proyecto = await this.buscarPorId(proyectoId);
+    this.verificarCreador(proyecto, usuarioId);
+    return proyecto;
   }
 
   private async verificarAccesoEscritura(usuarioId: number, proyecto: Proyecto): Promise<void> {

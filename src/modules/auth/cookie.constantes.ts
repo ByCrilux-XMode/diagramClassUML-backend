@@ -8,6 +8,7 @@ export interface OpcionesCookie {
   secure: boolean;
   path: string;
   maxAge: number;
+  domain?: string;
 }
 
 export function calcularMaxAgeMs(expiraEn: string): number {
@@ -27,20 +28,37 @@ export function calcularMaxAgeMs(expiraEn: string): number {
   return cantidad * (multiplicadores[unidad] ?? 60 * 60 * 1000);
 }
 
-export function crearOpcionesCookie(esSeguro: boolean, maxAgeMs: number): OpcionesCookie {
-  return {
+export function crearOpcionesCookie(
+  esSeguro: boolean,
+  maxAgeMs: number,
+  dominio?: string | null,
+): OpcionesCookie {
+  const opciones: OpcionesCookie = {
     httpOnly: true,
     sameSite: esSeguro ? 'none' : 'lax',
     secure: esSeguro,
     path: '/',
     maxAge: maxAgeMs,
   };
+  const domain = dominio?.trim();
+  if (domain) opciones.domain = domain;
+  return opciones;
 }
 
-export function establecerCookie(respuesta: Response, token: string, esSeguro: boolean, maxAgeMs: number): void {
-  respuesta.cookie(COOKIE_TOKEN, token, crearOpcionesCookie(esSeguro, maxAgeMs));
+export function establecerCookie(
+  respuesta: Response,
+  token: string,
+  esSeguro: boolean,
+  maxAgeMs: number,
+  dominio?: string | null,
+): void {
+  respuesta.cookie(COOKIE_TOKEN, token, crearOpcionesCookie(esSeguro, maxAgeMs, dominio));
 }
 
-export function eliminarCookie(respuesta: Response): void {
-  respuesta.clearCookie(COOKIE_TOKEN, { path: '/' });
+export function eliminarCookie(respuesta: Response, dominio?: string | null): void {
+  const domain = dominio?.trim();
+  respuesta.clearCookie(COOKIE_TOKEN, {
+    path: '/',
+    ...(domain ? { domain } : {}),
+  });
 }

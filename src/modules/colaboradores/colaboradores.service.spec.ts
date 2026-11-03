@@ -15,7 +15,7 @@ describe('ColaboradoresService', () => {
     save: vi.fn(),
     remove: vi.fn(),
   };
-  const proyectosService = { buscarPorId: vi.fn() };
+  const proyectosService = { buscarPorId: vi.fn(), verificarPermisoLectura: vi.fn() };
   const usuariosService = { buscarPorId: vi.fn() };
   const permisosService = { buscarPorId: vi.fn() };
 
@@ -76,10 +76,40 @@ describe('ColaboradoresService', () => {
 
   describe('listarDelProyecto', () => {
     it('devuelve los colaboradores ordenados por usuarioId', async () => {
-      proyectosService.buscarPorId.mockResolvedValue(crearProyecto(5, 1));
+      proyectosService.verificarPermisoLectura.mockResolvedValue('CREADOR');
       repositorioColaboradores.find.mockResolvedValue([crearColaborador(2, 5), crearColaborador(3, 5)]);
       const resultado = await servicio.listarDelProyecto(1, 5);
       expect(resultado).toHaveLength(2);
+    });
+
+    it('un LECTOR puede listar los colaboradores del proyecto', async () => {
+      proyectosService.verificarPermisoLectura.mockResolvedValue('LECTOR');
+      repositorioColaboradores.find.mockResolvedValue([crearColaborador(3, 5)]);
+
+      const resultado = await servicio.listarDelProyecto(9, 5);
+
+      expect(resultado).toHaveLength(1);
+      expect(proyectosService.verificarPermisoLectura).toHaveBeenCalledWith(9, 5);
+      expect(proyectosService.buscarPorId).not.toHaveBeenCalled();
+    });
+
+    it('un ajeno recibe ForbiddenException al listar', async () => {
+      proyectosService.verificarPermisoLectura.mockRejectedValue(
+        new ForbiddenException('No tienes acceso a este proyecto'),
+      );
+
+      await expect(servicio.listarDelProyecto(99, 5)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(repositorioColaboradores.find).not.toHaveBeenCalled();
+    });
+
+    it('las mutaciones siguen siendo solo del creador', async () => {
+      proyectosService.buscarPorId.mockResolvedValue(crearProyecto(5, 1));
+
+      await expect(servicio.asignar(2, 5, { usuarioId: 3, permisoId: 2 })).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      await expect(servicio.actualizarPermiso(2, 5, 3, 3)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(servicio.remover(2, 5, 3)).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 

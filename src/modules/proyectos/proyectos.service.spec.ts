@@ -16,6 +16,14 @@ describe('ProyectosService', () => {
     findOne: vi.fn(),
   };
   const usuariosService = { buscarPorId: vi.fn() };
+  const eventosService = { eliminarPorProyecto: vi.fn().mockResolvedValue(0) };
+  const chatService = {
+    eliminarPorProyecto: vi.fn().mockResolvedValue({ mensajes: 0, salas: 0 }),
+  };
+  const planesService = { eliminarPorProyecto: vi.fn().mockResolvedValue(0) };
+  const turnosService = { eliminarPorProyecto: vi.fn().mockResolvedValue(0) };
+  const propuestasService = { eliminarPorProyecto: vi.fn().mockResolvedValue(0) };
+  const configIaService = { eliminarPorProyecto: vi.fn().mockResolvedValue(0) };
 
   const crearProyecto = (creadorId: number): Proyecto =>
     ({ proyectoId: 5, nombre: 'Original', esquemaJson: null, creador: { usuarioId: creadorId } as Usuario }) as Proyecto;
@@ -26,6 +34,12 @@ describe('ProyectosService', () => {
       repositorio as never,
       repositorioColaboradores as never,
       usuariosService as never,
+      eventosService as never,
+      chatService as never,
+      planesService as never,
+      turnosService as never,
+      propuestasService as never,
+      configIaService as never,
     );
   });
 

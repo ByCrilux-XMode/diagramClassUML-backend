@@ -36,12 +36,18 @@ export class AuthController {
   @Post('cerrar-sesion')
   @HttpCode(HttpStatus.NO_CONTENT)
   cerrarSesion(@Res({ passthrough: true }) respuesta: Response): void {
-    eliminarCookie(respuesta);
+    eliminarCookie(respuesta, this.configService.get('COOKIE_DOMAIN'));
   }
 
   private enviarCookie(respuesta: Response, tokenAcceso: string): void {
     const esSeguro = this.configService.get('COOKIE_SECURE') ?? false;
     const maxAge = calcularMaxAgeMs(this.configService.getOrThrow('JWT_EXPIRES_IN'));
-    establecerCookie(respuesta, tokenAcceso, esSeguro, maxAge);
+    establecerCookie(
+      respuesta,
+      tokenAcceso,
+      esSeguro,
+      maxAge,
+      this.configService.get('COOKIE_DOMAIN'),
+    );
   }
 }

@@ -42,7 +42,10 @@ export class ColaboradoresService {
   }
 
   async listarDelProyecto(usuarioId: number, proyectoId: number): Promise<Colaborador[]> {
-    await this.obtenerProyectoVerificado(usuarioId, proyectoId);
+    // D51: cualquier colaborador (incluido LECTOR) puede leer la lista para
+    // saber quiénes están en el proyecto. Las mutaciones siguen siendo del
+    // creador (`obtenerProyectoVerificado`).
+    await this.proyectosService.verificarPermisoLectura(usuarioId, proyectoId);
     return this.repositorioColaboradores.find({
       where: { proyectoId },
       relations: { usuario: { persona: true }, permiso: true },

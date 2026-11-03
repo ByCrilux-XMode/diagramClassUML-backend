@@ -51,9 +51,28 @@ export class Entorno {
   @Transform(({ value }) => (value === undefined ? false : value === 'true'))
   COOKIE_SECURE: boolean = false;
 
+  /** Dominio compartido entre frontend y API, por ejemplo `.midominio.com`. */
+  @IsString()
+  @IsOptional()
+  COOKIE_DOMAIN: string = '';
+
+  /** Turnos de IA por usuario y proyecto cada minuto. `0` desactiva el límite. */
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  @Transform(({ value }) => (value === undefined ? 10 : Number(value)))
+  IA_LIMITE_TURNOS_MINUTO: number = 10;
+
   @IsString()
   @IsOptional()
   CORS_ORIGIN: string = 'http://localhost:5173';
+
+  @IsString()
+  MONGODB_URI: string;
+
+  @IsString()
+  @IsOptional()
+  MONGODB_DB: string = 'diagramador';
 }
 
 export function validarEntorno(variables: Record<string, unknown>): Entorno {

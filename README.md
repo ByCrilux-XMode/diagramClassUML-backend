@@ -57,6 +57,67 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Operación del sistema
+
+### Cookie de sesión compartida
+
+El proxy de Next valida la sesión contra `GET /usuarios/me` con la cookie
+`tokenAcceso`. Para que el navegador envíe esa cookie al host del frontend, la
+cookie se emite con `COOKIE_DOMAIN` cuando la variable está definida.
+
+| Escenario | Configuración | Resultado |
+|---|---|---|
+| Mismo host, distinto puerto (desarrollo) | sin `COOKIE_DOMAIN` | funciona: las cookies no se aíslan por puerto |
+| Subdominios (`app.x.com` + `api.x.com`) | `COOKIE_DOMAIN=.x.com` | funciona |
+| Dominios distintos (`app.com` + `api.io`) | no soportado | el proxy devuelve 503 con mensaje de configuración |
+
+`COOKIE_DOMAIN` solo añade `domain`; la cookie conserva `httpOnly`, `path: '/'` y
+`secure`/`sameSite` según `COOKIE_SECURE`. Nunca se expone el token a JavaScript.
+
+### Límites de uso
+
+| Variable | Defecto | Alcance |
+|---|---|---|
+| `IA_LIMITE_TURNOS_MINUTO` | `10` | Turnos de IA por usuario y proyecto; `0` desactiva solo la frecuencia. |
+| `IA_LIMITE_CHAT_MINUTO` | `20` | Peticiones al proxy `/api/ia/*` por usuario. |
+| `IA_LIMITE_CHAT_HORA` | `200` | Peticiones al proxy `/api/ia/*` por usuario. |
+
+El límite de turnos se evalúa antes de validar el permiso y de crear el turno:
+un `429` no deja ningún turno huérfano ni altera el índice único parcial.
+
+### Operación de MongoDB
+
+La bitácora no tiene TTL y Atlas M0 tiene 512 MB, así que la medición es un
+script con salida JSON y código de salida, nunca un endpoint HTTP.
+
+```bash
+# Uso por colección, porcentaje y umbral. Sale con código 1 al superar el umbral.
+npm run mongo:estado
+
+# Exporta cada colección a export/<coleccion>-<fecha>.jsonl.gz con cursor + gzip.
+npm run mongo:exportar
+```
+
+| Variable | Defecto | Uso |
+|---|---|---|
+| `MONGO_CAPACIDAD_MB` | `512` | Capacidad usada para calcular el porcentaje. |
+| `MONGO_UMBRAL_MB` | `70` | Porcentaje a partir del cual `mongo:estado` sale con código 1. |
+| `MONGO_EXPORT_DIR` | `export` | Directorio de salida de `mongo:exportar`. |
+
+`mongo:estado` informa `capacidadMb`, `usadoMb`, `porcentaje`, `mayorColeccion` y
+el tamaño de `eventos`, `salas`, `mensajes`, `propuestas`, `planes`, `turnos_ia`
+y `config_ia`. La exportación escribe línea por línea respetando la
+contrapresión del stream: no carga la colección completa en memoria.
+
+### Reversión del último turno de IA
+
+`GET /proyectos/:id/eventos/ultimo-turno-ia` devuelve el último `turnoId` de la
+IA, sus eventos y `deshacible`. Solo CREADOR y EDITOR pueden consultarlo; un
+LECTOR o un ajeno recibe 403. El lote se rechaza si una entidad cambió después
+del turno o si algún cambio no guardó `antes`. El cliente reconstruye las tools
+inversas, las aplica con aprobación humana y registra un turno nuevo con
+`revierteTurnoId`; el campo es opcional y `null` en los eventos anteriores.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

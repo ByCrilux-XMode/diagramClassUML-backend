@@ -46,6 +46,25 @@ export class PersistenciaColaboracionService implements OnModuleInit {
     );
   }
 
+  async restaurar(proyectoId: number, esquemaJson: Record<string, unknown>): Promise<void> {
+    const nombreDocumento = String(proyectoId);
+    this.eliminarTemporizador(nombreDocumento);
+    const documento = docs.get(nombreDocumento);
+    if (documento) {
+      aplicarJson(documento, esquemaJson);
+    }
+    await this.repositorioProyectos.save(
+      this.repositorioProyectos.create({ proyectoId, esquemaJson }),
+    );
+    await this.repositorioDocumentos.save(
+      this.repositorioDocumentos.create({
+        proyectoId,
+        esquemaTemporal: esquemaJson,
+        actualizadoEn: new Date(),
+      }),
+    );
+  }
+
   private async vincular(nombreDocumento: string, documento: Y.Doc): Promise<void> {
     const proyectoId = this.extraerProyectoId(nombreDocumento);
     if (proyectoId === null) return;

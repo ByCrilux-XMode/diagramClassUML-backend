@@ -28,5 +28,6 @@ import { ServidorColaboracion } from './servidor-colaboracion.js';
   ],
   controllers: [ColaboracionController],
   providers: [ServidorColaboracion, PersistenciaColaboracionService, ColaboracionService],
+  exports: [PersistenciaColaboracionService],
 })
 export class ColaboracionModule {}

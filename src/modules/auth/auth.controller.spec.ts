@@ -20,7 +20,9 @@ describe('AuthController', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    configService.get.mockImplementation((clave: string) => (clave === 'COOKIE_SECURE' ? false : undefined));
+    configService.get.mockImplementation((clave: string) =>
+      clave === 'COOKIE_SECURE' ? false : undefined,
+    );
     configService.getOrThrow.mockReturnValue('1d');
     controlador = new AuthController(authService as never, configService as never);
   });
@@ -41,6 +43,34 @@ describe('AuthController', () => {
         COOKIE_TOKEN,
         'token-secreto',
         expect.objectContaining({ httpOnly: true, sameSite: 'lax', secure: false }),
+      );
+      expect(
+        (respuesta.cookie as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[2],
+      ).not.toHaveProperty('domain');
+    });
+
+    it('con COOKIE_DOMAIN la cookie se comparte entre subdominios', async () => {
+      configService.get.mockImplementation((clave: string) => {
+        if (clave === 'COOKIE_SECURE') return true;
+        if (clave === 'COOKIE_DOMAIN') return '.midominio.com';
+        return undefined;
+      });
+      const usuario = { usuarioId: 3, username: 'eva' } as Usuario;
+      authService.iniciarSesion.mockResolvedValue({ tokenAcceso: 'token-compartido', usuario });
+      const respuesta = crearRespuestaMock();
+
+      await controlador.iniciarSesion({ username: 'eva', password: 'clave1234' }, respuesta);
+
+      expect(respuesta.cookie).toHaveBeenCalledWith(
+        COOKIE_TOKEN,
+        'token-compartido',
+        expect.objectContaining({
+          domain: '.midominio.com',
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none',
+          path: '/',
+        }),
       );
     });
   });
@@ -69,6 +99,20 @@ describe('AuthController', () => {
       controlador.cerrarSesion(respuesta);
 
       expect(respuesta.clearCookie).toHaveBeenCalledWith(COOKIE_TOKEN, expect.objectContaining({ path: '/' }));
+    });
+
+    it('borra también la cookie del dominio configurado', async () => {
+      configService.get.mockImplementation((clave: string) =>
+        clave === 'COOKIE_DOMAIN' ? '.midominio.com' : undefined,
+      );
+      const respuesta = crearRespuestaMock();
+
+      controlador.cerrarSesion(respuesta);
+
+      expect(respuesta.clearCookie).toHaveBeenCalledWith(COOKIE_TOKEN, {
+        path: '/',
+        domain: '.midominio.com',
+      });
     });
   });
 });
