@@ -36,7 +36,10 @@ export class FirebaseAdminService implements OnModuleInit {
       this.mensajeria = getMessaging(app);
       this.logger.log('Firebase Admin inicializado correctamente');
     } catch (error) {
-      this.logger.error(`No se pudo inicializar Firebase Admin: ${this.describirError(error)}`);
+      this.logger.error(
+        `No se pudo inicializar Firebase Admin: ${this.describirError(error)}. ` +
+          'Revisa que FIREBASE_PRIVATE_KEY esté completa, sin comillas externas y con \\n entre las líneas.',
+      );
     }
   }
 
@@ -60,20 +63,45 @@ export class FirebaseAdminService implements OnModuleInit {
   }
 
   private crearCredencial(): Credential | null {
-    const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
-    const clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
-    const privateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
+    const projectId = this.limpiarValor(this.configService.get<string>('FIREBASE_PROJECT_ID'));
+    const clientEmail = this.limpiarValor(this.configService.get<string>('FIREBASE_CLIENT_EMAIL'));
+    const privateKey = this.normalizarPrivateKey(
+      this.configService.get<string>('FIREBASE_PRIVATE_KEY'),
+    );
     if (projectId && clientEmail && privateKey) {
-      return cert({
-        projectId,
-        clientEmail,
-        privateKey: privateKey.replace(/\\n/g, '\n'),
-      });
+      if (
+        !privateKey.includes('-----BEGIN PRIVATE KEY-----') ||
+        !privateKey.includes('-----END PRIVATE KEY-----')
+      ) {
+        this.logger.error(
+          'FIREBASE_PRIVATE_KEY no tiene el formato PEM esperado. Debe incluir -----BEGIN PRIVATE KEY----- y -----END PRIVATE KEY-----.',
+        );
+        return null;
+      }
+      return cert({ projectId, clientEmail, privateKey });
     }
-    if (this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIALS')) {
+    if (this.limpiarValor(this.configService.get<string>('GOOGLE_APPLICATION_CREDENTIALS'))) {
       return applicationDefault();
     }
     return null;
+  }
+
+  private normalizarPrivateKey(valor: string | undefined): string | null {
+    const limpia = this.limpiarValor(valor);
+    if (!limpia) return null;
+    return limpia.replace(/\\r/g, '').replace(/\\n/g, '\n').replace(/\r/g, '').trim();
+  }
+
+  private limpiarValor(valor: string | undefined): string | null {
+    if (!valor) return null;
+    let limpio = valor.trim();
+    if (
+      (limpio.startsWith('"') && limpio.endsWith('"')) ||
+      (limpio.startsWith("'") && limpio.endsWith("'"))
+    ) {
+      limpio = limpio.slice(1, -1).trim();
+    }
+    return limpio || null;
   }
 
   private describirError(error: unknown): string {

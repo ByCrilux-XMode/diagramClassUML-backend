@@ -128,6 +128,11 @@ export class ProyectosService {
     return this.versionesService.buscarPorId(proyectoId, versionId);
   }
 
+  async eliminarVersion(usuarioId: number, proyectoId: number, versionId: number): Promise<void> {
+    await this.verificarPermisoEscritura(usuarioId, proyectoId);
+    await this.versionesService.eliminar(proyectoId, versionId);
+  }
+
   async proyectosPorUsuario(
     usuarioId: number,
     paginado: PaginadoDto,

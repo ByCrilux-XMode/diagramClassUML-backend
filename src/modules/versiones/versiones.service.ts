@@ -60,6 +60,11 @@ export class VersionesService {
     return version;
   }
 
+  async eliminar(proyectoId: number, versionId: number): Promise<void> {
+    const version = await this.buscarPorId(proyectoId, versionId);
+    await this.repositorioVersiones.remove(version);
+  }
+
   private async generarNombre(proyectoId: number): Promise<string> {
     const cantidad = await this.repositorioVersiones.count({
       where: { proyecto: { proyectoId } },

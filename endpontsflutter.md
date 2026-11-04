@@ -106,7 +106,7 @@ Permisos iniciales creados por el backend:
 | `permisoId` | `nombre` | Puede |
 |---|---|---|
 | `1` | `LECTOR` | Ver el proyecto y colaborar en tiempo real (sin guardar cambios). |
-| `2` | `EDITOR` | Ver, editar el esquema, guardar y restaurar versiones. |
+| `2` | `EDITOR` | Ver, editar el esquema, guardar, crear, restaurar y eliminar versiones. |
 
 ### Versión de proyecto
 
@@ -451,7 +451,7 @@ Guarda en PostgreSQL el estado actual del documento colaborativo (Yjs). Requiere
 
 **Respuesta `200`:** objeto `Proyecto` actualizado.
 
-> Si hubo cambios, se crea una versión automática y se notifica a los demás miembros.
+> Si existe un documento colaborativo vivo o un esquema temporal, se crea una versión automática y se notifica a los demás miembros. No se compara el contenido: puede notificar aunque no haya ediciones nuevas.
 
 **Errores:** `401`, `403`, `404`.
 
@@ -487,7 +487,7 @@ Lista las versiones del proyecto, de la más reciente a la más antigua.
 }
 ```
 
-**Errores:** `400`, `404` si el proyecto no existe.
+**Errores:** `400`. Si el proyecto no existe, devuelve `{ "datos": [], "total": 0 }`.
 
 ---
 
@@ -532,6 +532,18 @@ Restaura el esquema de una versión. Requiere ser **creador** o **EDITOR**. No r
 **Respuesta `200`:** objeto `Proyecto` con el esquema restaurado.
 
 > Además de restaurar, crea una versión nueva llamada `Restauración de <nombre>` y notifica a los demás miembros.
+
+**Errores:** `400`, `401`, `403`, `404`.
+
+---
+
+### `DELETE /proyectos/:id/versiones/:versionId`
+
+Elimina una versión concreta. Requiere ser **creador** o **EDITOR**. No recibe body.
+
+**Respuesta `204`:** sin contenido.
+
+> No modifica el esquema actual del proyecto ni genera notificaciones. El proyecto sigue existiendo aunque se elimine la última versión.
 
 **Errores:** `400`, `401`, `403`, `404`.
 
@@ -766,6 +778,7 @@ Hello World!
 | Eliminar proyecto | `DELETE /proyectos/:id` |
 | Historial de versiones | `GET /proyectos/:id/versiones` |
 | Restaurar versión | `POST /proyectos/:id/versiones/:versionId/restaurar` |
+| Eliminar versión | `DELETE /proyectos/:id/versiones/:versionId` |
 | Notificaciones | `GET /notificaciones` |
 | Marcar todas como leídas | `PATCH /notificaciones/leidas` |
 | Cerrar sesión | `DELETE /usuarios/me/token-firebase` + `POST /auth/cerrar-sesion` |

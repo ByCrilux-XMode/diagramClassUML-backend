@@ -58,6 +58,16 @@ export class ProyectosController {
     return this.proyectosService.restaurarVersion(usuario.usuarioId, id, versionId);
   }
 
+  @Delete(':id/versiones/:versionId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async eliminarVersion(
+    @UsuarioActual() usuario: Usuario,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('versionId', ParseIntPipe) versionId: number,
+  ): Promise<void> {
+    await this.proyectosService.eliminarVersion(usuario.usuarioId, id, versionId);
+  }
+
   @Patch(':id')
   actualizar(
     @UsuarioActual() usuario: Usuario,

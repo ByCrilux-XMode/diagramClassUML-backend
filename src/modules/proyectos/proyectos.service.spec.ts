@@ -16,7 +16,12 @@ describe('ProyectosService', () => {
     findOne: vi.fn(),
   };
   const usuariosService = { buscarPorId: vi.fn() };
-  const versionesService = { crear: vi.fn(), listar: vi.fn(), buscarPorId: vi.fn() };
+  const versionesService = {
+    crear: vi.fn(),
+    listar: vi.fn(),
+    buscarPorId: vi.fn(),
+    eliminar: vi.fn(),
+  };
   const notificacionesService = { notificarAccionProyecto: vi.fn() };
   const persistenciaColaboracionService = { aplicarEsquema: vi.fn() };
 
@@ -257,6 +262,33 @@ describe('ProyectosService', () => {
 
       expect(versionesService.crear).toHaveBeenCalledWith(proyecto, expect.anything(), dto);
       expect(resultado).toEqual({ versionId: 1 });
+    });
+  });
+
+  describe('eliminarVersion', () => {
+    it('el creador puede eliminar una versión', async () => {
+      repositorio.findOne.mockResolvedValue(crearProyecto(1));
+
+      await servicio.eliminarVersion(1, 5, 8);
+
+      expect(versionesService.eliminar).toHaveBeenCalledWith(5, 8);
+    });
+
+    it('un colaborador EDITOR puede eliminar una versión', async () => {
+      repositorio.findOne.mockResolvedValue(crearProyecto(1));
+      repositorioColaboradores.findOne.mockResolvedValue({ permiso: { nombre: 'EDITOR' } });
+
+      await servicio.eliminarVersion(3, 5, 8);
+
+      expect(versionesService.eliminar).toHaveBeenCalledWith(5, 8);
+    });
+
+    it('un colaborador LECTOR no puede eliminar una versión', async () => {
+      repositorio.findOne.mockResolvedValue(crearProyecto(1));
+      repositorioColaboradores.findOne.mockResolvedValue({ permiso: { nombre: 'LECTOR' } });
+
+      await expect(servicio.eliminarVersion(3, 5, 8)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(versionesService.eliminar).not.toHaveBeenCalled();
     });
   });
 });
