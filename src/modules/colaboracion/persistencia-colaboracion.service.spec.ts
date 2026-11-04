@@ -83,8 +83,9 @@ describe('PersistenciaColaboracionService', () => {
     doc.getMap<unknown>('esquema').set('class', 'GraphLinksModel');
     docs.set('8', doc);
 
-    await servicio.commit('8');
+    const huboCambios = await servicio.commit('8');
 
+    expect(huboCambios).toBe(true);
     expect(repositorioProyectos.save).toHaveBeenCalledWith(
       expect.objectContaining({ proyectoId: 8, esquemaJson: { class: 'GraphLinksModel' } }),
     );
@@ -97,8 +98,9 @@ describe('PersistenciaColaboracionService', () => {
       esquemaTemporal: { nodeDataArray: [{ key: 'n1', name: 'Clase' }] },
     });
 
-    await servicio.commit('8');
+    const huboCambios = await servicio.commit('8');
 
+    expect(huboCambios).toBe(true);
     expect(repositorioProyectos.save).toHaveBeenCalledWith(
       expect.objectContaining({
         proyectoId: 8,
@@ -111,8 +113,33 @@ describe('PersistenciaColaboracionService', () => {
     const { servicio, repositorioProyectos, repositorioDocumentos } = crearServicio();
     repositorioDocumentos.findOneBy.mockResolvedValue(null);
 
-    await servicio.commit('9');
+    const huboCambios = await servicio.commit('9');
 
+    expect(huboCambios).toBe(false);
     expect(repositorioProyectos.save).not.toHaveBeenCalled();
+  });
+
+  it('aplicarEsquema actualiza el documento vivo y el temporal', async () => {
+    const { servicio, repositorioDocumentos } = crearServicio();
+    const doc = new Y.Doc();
+    doc.getMap<unknown>('esquema').set('nombre', 'anterior');
+    docs.set('5', doc);
+
+    await servicio.aplicarEsquema(5, { nombre: 'restaurado' });
+
+    expect(doc.getMap<unknown>('esquema').get('nombre')).toBe('restaurado');
+    expect(repositorioDocumentos.save).toHaveBeenCalledWith(
+      expect.objectContaining({ proyectoId: 5, esquemaTemporal: { nombre: 'restaurado' } }),
+    );
+  });
+
+  it('aplicarEsquema guarda el temporal aunque no haya documento vivo', async () => {
+    const { servicio, repositorioDocumentos } = crearServicio();
+
+    await servicio.aplicarEsquema(7, null);
+
+    expect(repositorioDocumentos.save).toHaveBeenCalledWith(
+      expect.objectContaining({ proyectoId: 7, esquemaTemporal: null }),
+    );
   });
 });

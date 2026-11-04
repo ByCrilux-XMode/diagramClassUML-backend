@@ -54,6 +54,22 @@ export class Entorno {
   @IsString()
   @IsOptional()
   CORS_ORIGIN: string = 'http://localhost:5173';
+
+  @IsString()
+  @IsOptional()
+  FIREBASE_PROJECT_ID: string;
+
+  @IsString()
+  @IsOptional()
+  FIREBASE_CLIENT_EMAIL: string;
+
+  @IsString()
+  @IsOptional()
+  FIREBASE_PRIVATE_KEY: string;
+
+  @IsString()
+  @IsOptional()
+  GOOGLE_APPLICATION_CREDENTIALS: string;
 }
 
 export function validarEntorno(variables: Record<string, unknown>): Entorno {

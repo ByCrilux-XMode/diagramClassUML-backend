@@ -29,6 +29,7 @@ export class AuthService {
       apellido: dto.apellido,
     });
     const perfil = await this.usuariosService.buscarPorId(usuario.usuarioId);
+    await this.registrarTokenSiViene(dto.tokenFirebase, perfil.usuarioId);
     return { tokenAcceso: await this.firmarToken(perfil), usuario: perfil };
   }
 
@@ -38,7 +39,16 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
     const perfil = await this.usuariosService.buscarPorId(usuario.usuarioId);
+    await this.registrarTokenSiViene(dto.tokenFirebase, perfil.usuarioId);
     return { tokenAcceso: await this.firmarToken(perfil), usuario: perfil };
+  }
+
+  private async registrarTokenSiViene(
+    tokenFirebase: string | undefined,
+    usuarioId: number,
+  ): Promise<void> {
+    if (!tokenFirebase) return;
+    await this.usuariosService.actualizarTokenFirebase(usuarioId, tokenFirebase);
   }
 
   private firmarToken(usuario: Usuario): Promise<string> {

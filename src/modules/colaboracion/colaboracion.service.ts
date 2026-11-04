@@ -12,7 +12,10 @@ export class ColaboracionService {
 
   async guardar(usuarioId: number, proyectoId: number): Promise<Proyecto> {
     await this.proyectosService.verificarPermisoEscritura(usuarioId, proyectoId);
-    await this.persistenciaService.commit(String(proyectoId));
+    const huboCambios = await this.persistenciaService.commit(String(proyectoId));
+    if (huboCambios) {
+      await this.proyectosService.registrarGuardado(usuarioId, proyectoId);
+    }
     return this.proyectosService.buscarPorId(proyectoId);
   }
 }

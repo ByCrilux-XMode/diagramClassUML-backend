@@ -8,6 +8,7 @@ import { ConfiguracionTypeOrm } from './config/typeorm.config.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ColaboracionModule } from './modules/colaboracion/colaboracion.module.js';
 import { ColaboradoresModule } from './modules/colaboradores/colaboradores.module.js';
+import { NotificacionesModule } from './modules/notificaciones/notificaciones.module.js';
 import { PermisosModule } from './modules/permisos/permisos.module.js';
 import { ProyectosModule } from './modules/proyectos/proyectos.module.js';
 import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
@@ -27,6 +28,7 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
     ColaboradoresModule,
     PermisosModule,
     ColaboracionModule,
+    NotificacionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

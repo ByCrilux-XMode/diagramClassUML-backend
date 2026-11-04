@@ -27,9 +27,9 @@ export class PersistenciaColaboracionService implements OnModuleInit {
     this.logger.log('Persistencia de colaboración en tiempo real inicializada');
   }
 
-  async commit(nombreDocumento: string): Promise<void> {
+  async commit(nombreDocumento: string): Promise<boolean> {
     const proyectoId = this.extraerProyectoId(nombreDocumento);
-    if (proyectoId === null) return;
+    if (proyectoId === null) return false;
     const documento = docs.get(nombreDocumento);
     if (documento) {
       this.eliminarTemporizador(nombreDocumento);
@@ -37,12 +37,29 @@ export class PersistenciaColaboracionService implements OnModuleInit {
       await this.repositorioProyectos.save(
         this.repositorioProyectos.create({ proyectoId, esquemaJson }),
       );
-      return;
+      return true;
     }
     const temporal = await this.repositorioDocumentos.findOneBy({ proyectoId });
-    if (!temporal?.esquemaTemporal) return;
+    if (!temporal?.esquemaTemporal) return false;
     await this.repositorioProyectos.save(
       this.repositorioProyectos.create({ proyectoId, esquemaJson: temporal.esquemaTemporal }),
+    );
+    return true;
+  }
+
+  async aplicarEsquema(proyectoId: number, esquema: Record<string, unknown> | null): Promise<void> {
+    const nombreDocumento = String(proyectoId);
+    this.eliminarTemporizador(nombreDocumento);
+    const documento = docs.get(nombreDocumento);
+    if (documento) {
+      aplicarJson(documento, esquema);
+    }
+    await this.repositorioDocumentos.save(
+      this.repositorioDocumentos.create({
+        proyectoId,
+        esquemaTemporal: esquema,
+        actualizadoEn: new Date(),
+      }),
     );
   }
 

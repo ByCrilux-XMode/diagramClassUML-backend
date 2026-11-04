@@ -10,6 +10,7 @@ describe('UsuariosService', () => {
     findOne: vi.fn(),
     findOneBy: vi.fn(),
     findAndCount: vi.fn(),
+    update: vi.fn(),
   };
   const repositorioPersonas = {
     findOne: vi.fn(),
@@ -96,6 +97,38 @@ describe('UsuariosService', () => {
       await expect(
         servicio.crearUsuarioConPersona({ username: 'user1', contrasena: 'h', nombre: 'X', apellido: 'Y' }),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('token de Firebase', () => {
+    it('actualiza el token del usuario', async () => {
+      repositorioUsuarios.update.mockResolvedValue({ affected: 1 });
+
+      await servicio.actualizarTokenFirebase(1, 'token-fcm');
+
+      expect(repositorioUsuarios.update).toHaveBeenCalledWith(
+        { usuarioId: 1 },
+        { tokenFirebase: 'token-fcm' },
+      );
+    });
+
+    it('lanza NotFoundException al actualizar el token de un usuario inexistente', async () => {
+      repositorioUsuarios.update.mockResolvedValue({ affected: 0 });
+
+      await expect(servicio.actualizarTokenFirebase(99, 'token-fcm')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('elimina el token del usuario', async () => {
+      repositorioUsuarios.update.mockResolvedValue({ affected: 1 });
+
+      await servicio.eliminarTokenFirebase(1);
+
+      expect(repositorioUsuarios.update).toHaveBeenCalledWith(
+        { usuarioId: 1 },
+        { tokenFirebase: null },
+      );
     });
   });
 });
