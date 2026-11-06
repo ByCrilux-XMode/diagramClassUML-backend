@@ -531,7 +531,7 @@ Restaura el esquema de una versión. Requiere ser **creador** o **EDITOR**. No r
 
 **Respuesta `200`:** objeto `Proyecto` con el esquema restaurado.
 
-> Además de restaurar, crea una versión nueva llamada `Restauración de <nombre>` y notifica a los demás miembros.
+> Además de restaurar, actualiza el documento colaborativo en vivo y notifica a los demás miembros. **No crea una versión nueva**: el historial no se duplica.
 
 **Errores:** `400`, `401`, `403`, `404`.
 

@@ -220,7 +220,7 @@ describe('ProyectosService', () => {
   });
 
   describe('restaurarVersion', () => {
-    it('restaura el esquema, crea una nueva versión y notifica', async () => {
+    it('restaura el esquema y notifica sin crear una versión nueva', async () => {
       const proyecto = crearProyecto(1);
       repositorio.findOne.mockResolvedValue(proyecto);
       usuariosService.buscarPorId.mockResolvedValue({
@@ -243,11 +243,7 @@ describe('ProyectosService', () => {
       expect(repositorio.save).toHaveBeenCalledWith(
         expect.objectContaining({ esquemaJson: { restaurado: true } }),
       );
-      expect(versionesService.crear).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ usuarioId: 1 }),
-        expect.objectContaining({ nombre: 'Restauración de Versión 2' }),
-      );
+      expect(versionesService.crear).not.toHaveBeenCalled();
       expect(notificacionesService.notificarAccionProyecto).toHaveBeenCalledWith(
         'VERSION_RESTAURADA',
         expect.anything(),

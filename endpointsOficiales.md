@@ -805,7 +805,7 @@ Set-Cookie: tokenAcceso=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
 
 **Salida `200`:** objeto `Proyecto` con el esquema restaurado.
 
-> Además de restaurar el proyecto, actualiza el documento colaborativo en vivo, crea una versión nueva llamada `Restauración de <nombre>` y notifica a los demás miembros.
+> Además de restaurar el proyecto, actualiza el documento colaborativo en vivo y notifica a los demás miembros. **No crea una versión nueva**: la versión restaurada sigue siendo la misma y el historial no se duplica.
 
 **Errores:** `400` IDs inválidos, `401` sin sesión, `403` sin permiso de escritura, `404` proyecto o versión no encontrados.
 

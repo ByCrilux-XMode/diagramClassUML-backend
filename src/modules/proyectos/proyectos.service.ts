@@ -139,10 +139,6 @@ export class ProyectosService {
 
     const proyectoActualizado = await this.buscarPorId(proyectoId);
     const actor = await this.usuariosService.buscarPorId(usuarioId);
-    await this.versionesService.crear(proyectoActualizado, actor, {
-      nombre: `Restauración de ${version.nombre}`,
-      descripcion: `Restauración realizada por ${nombreCompleto(actor)}.`,
-    });
     await this.notificacionesService.notificarAccionProyecto(
       TipoAccionProyecto.VERSION_RESTAURADA,
       proyectoActualizado,
