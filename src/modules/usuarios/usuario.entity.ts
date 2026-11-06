@@ -14,6 +14,10 @@ export class Usuario {
   @Column({ name: 'password' })
   contrasena: string;
 
+  @Exclude()
+  @Column({ name: 'token_firebase', type: 'varchar', length: 512, nullable: true })
+  tokenFirebase: string | null;
+
   @OneToOne(() => Persona, { nullable: false })
   @JoinColumn({ name: 'persona_id' })
   persona: Persona;

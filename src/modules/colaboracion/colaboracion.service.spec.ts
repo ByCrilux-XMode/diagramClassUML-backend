@@ -7,12 +7,14 @@ describe('ColaboracionService', () => {
   let servicio: ColaboracionService;
   const proyectosService = {
     verificarPermisoEscritura: vi.fn(),
+    registrarGuardado: vi.fn(),
     buscarPorId: vi.fn(),
   };
   const persistenciaService = { commit: vi.fn() };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    persistenciaService.commit.mockResolvedValue(true);
     servicio = new ColaboracionService(
       proyectosService as unknown as ProyectosService,
       persistenciaService as unknown as PersistenciaColaboracionService,
@@ -26,7 +28,18 @@ describe('ColaboracionService', () => {
     const resultado = await servicio.guardar(1, 5);
 
     expect(persistenciaService.commit).toHaveBeenCalledWith('5');
+    expect(proyectosService.registrarGuardado).toHaveBeenCalledWith(1, 5);
     expect(resultado).toEqual({ proyectoId: 5, nombre: 'Diagrama' });
+  });
+
+  it('no registra guardado cuando no hubo cambios que persistir', async () => {
+    proyectosService.verificarPermisoEscritura.mockResolvedValue({ proyectoId: 5 });
+    proyectosService.buscarPorId.mockResolvedValue({ proyectoId: 5, nombre: 'Diagrama' });
+    persistenciaService.commit.mockResolvedValue(false);
+
+    await servicio.guardar(1, 5);
+
+    expect(proyectosService.registrarGuardado).not.toHaveBeenCalled();
   });
 
   it('no concreta si el usuario no tiene permiso de escritura', async () => {
@@ -34,6 +47,7 @@ describe('ColaboracionService', () => {
 
     await expect(servicio.guardar(3, 5)).rejects.toBeInstanceOf(ForbiddenException);
     expect(persistenciaService.commit).not.toHaveBeenCalled();
+    expect(proyectosService.registrarGuardado).not.toHaveBeenCalled();
   });
 
   it('propaga NotFoundException cuando el proyecto no existe', async () => {

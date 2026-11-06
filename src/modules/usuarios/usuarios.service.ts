@@ -98,4 +98,18 @@ export class UsuariosService implements OnModuleInit {
     });
     return { datos, total };
   }
+
+  async actualizarTokenFirebase(usuarioId: number, tokenFirebase: string): Promise<void> {
+    const resultado = await this.repositorioUsuarios.update({ usuarioId }, { tokenFirebase });
+    if (!resultado.affected) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+  }
+
+  async eliminarTokenFirebase(usuarioId: number): Promise<void> {
+    const resultado = await this.repositorioUsuarios.update({ usuarioId }, { tokenFirebase: null });
+    if (!resultado.affected) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+  }
 }

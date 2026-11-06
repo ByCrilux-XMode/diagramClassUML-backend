@@ -4,13 +4,19 @@ import { Repository } from 'typeorm';
 import { PaginadoDto } from '../../common/dto/paginado.dto.js';
 import { ChatService } from '../chat/chat.service.js';
 import { Colaborador } from '../colaboradores/colaborador.entity.js';
+import { PersistenciaColaboracionService } from '../colaboracion/persistencia-colaboracion.service.js';
 import { ConfigIaService } from '../config-ia/config-ia.service.js';
 import { EventosService } from '../eventos/eventos.service.js';
+import { nombreCompleto, TipoAccionProyecto } from '../notificaciones/accion-proyecto.constantes.js';
+import { NotificacionesService } from '../notificaciones/notificaciones.service.js';
 import { PERMISO_EDITOR } from '../permisos/permiso.constantes.js';
 import { PlanesService } from '../planes/planes.service.js';
 import { PropuestasService } from '../propuestas/propuestas.service.js';
 import { TurnosService } from '../turnos/turnos.service.js';
 import { UsuariosService } from '../usuarios/usuarios.service.js';
+import { CrearVersionDto } from '../versiones/dto/crear-version.dto.js';
+import { VersionProyecto } from '../versiones/version-proyecto.entity.js';
+import { VersionesService } from '../versiones/versiones.service.js';
 import { ActualizarProyectoDto } from './dto/actualizar-proyecto.dto.js';
 import { CrearProyectoDto } from './dto/crear-proyecto.dto.js';
 import { ProyectoResumenDto, ROL_CREADOR } from './dto/proyecto-resumen.dto.js';
@@ -30,6 +36,9 @@ export class ProyectosService {
     @Inject(forwardRef(() => TurnosService)) private readonly turnosService: TurnosService,
     @Inject(forwardRef(() => PropuestasService)) private readonly propuestasService: PropuestasService,
     @Inject(forwardRef(() => ConfigIaService)) private readonly configIaService: ConfigIaService,
+    private readonly versionesService: VersionesService,
+    private readonly notificacionesService: NotificacionesService,
+    private readonly persistenciaColaboracionService: PersistenciaColaboracionService,
   ) {}
 
   async crear(creadorId: number, dto: CrearProyectoDto): Promise<Proyecto> {
@@ -65,9 +74,13 @@ export class ProyectosService {
   async actualizar(usuarioId: number, proyectoId: number, dto: ActualizarProyectoDto): Promise<Proyecto> {
     const proyecto = await this.buscarPorId(proyectoId);
     await this.verificarAccesoEscritura(usuarioId, proyecto);
+    const esquemaModificado = dto.esquemaJson !== undefined;
     if (dto.nombre !== undefined) proyecto.nombre = dto.nombre;
     if (dto.esquemaJson !== undefined) proyecto.esquemaJson = dto.esquemaJson;
     await this.repositorioProyectos.save(proyecto);
+    if (esquemaModificado) {
+      await this.registrarGuardado(usuarioId, proyectoId);
+    }
     return this.buscarPorId(proyectoId);
   }
 
@@ -96,6 +109,63 @@ export class ProyectosService {
         err instanceof Error ? err.stack : String(err),
       );
     }
+  }
+
+  async registrarGuardado(usuarioId: number, proyectoId: number): Promise<void> {
+    const proyecto = await this.buscarPorId(proyectoId);
+    const actor = await this.usuariosService.buscarPorId(usuarioId);
+    await this.versionesService.crear(proyecto, actor, {
+      descripcionPredeterminada: `Guardado automático realizado por ${nombreCompleto(actor)}.`,
+    });
+    await this.notificacionesService.notificarAccionProyecto(
+      TipoAccionProyecto.PROYECTO_GUARDADO,
+      proyecto,
+      actor,
+    );
+  }
+
+  async crearVersion(usuarioId: number, proyectoId: number, dto: CrearVersionDto): Promise<VersionProyecto> {
+    const proyecto = await this.verificarPermisoEscritura(usuarioId, proyectoId);
+    const actor = await this.usuariosService.buscarPorId(usuarioId);
+    return this.versionesService.crear(proyecto, actor, dto);
+  }
+
+  async restaurarVersion(usuarioId: number, proyectoId: number, versionId: number): Promise<Proyecto> {
+    const proyecto = await this.verificarPermisoEscritura(usuarioId, proyectoId);
+    const version = await this.versionesService.buscarPorId(proyectoId, versionId);
+    await this.persistenciaColaboracionService.aplicarEsquema(proyectoId, version.esquemaJson);
+    proyecto.esquemaJson = version.esquemaJson;
+    await this.repositorioProyectos.save(proyecto);
+
+    const proyectoActualizado = await this.buscarPorId(proyectoId);
+    const actor = await this.usuariosService.buscarPorId(usuarioId);
+    await this.versionesService.crear(proyectoActualizado, actor, {
+      nombre: `Restauración de ${version.nombre}`,
+      descripcion: `Restauración realizada por ${nombreCompleto(actor)}.`,
+    });
+    await this.notificacionesService.notificarAccionProyecto(
+      TipoAccionProyecto.VERSION_RESTAURADA,
+      proyectoActualizado,
+      actor,
+      { versionId: version.versionId, nombreVersion: version.nombre },
+    );
+    return proyectoActualizado;
+  }
+
+  listarVersiones(
+    proyectoId: number,
+    paginado: PaginadoDto,
+  ): Promise<{ datos: VersionProyecto[]; total: number }> {
+    return this.versionesService.listar(proyectoId, paginado);
+  }
+
+  obtenerVersion(proyectoId: number, versionId: number): Promise<VersionProyecto> {
+    return this.versionesService.buscarPorId(proyectoId, versionId);
+  }
+
+  async eliminarVersion(usuarioId: number, proyectoId: number, versionId: number): Promise<void> {
+    await this.verificarPermisoEscritura(usuarioId, proyectoId);
+    await this.versionesService.eliminar(proyectoId, versionId);
   }
 
   async proyectosPorUsuario(

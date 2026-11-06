@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class IniciarSesionDto {
   @IsString()
@@ -8,4 +8,10 @@ export class IniciarSesionDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(512)
+  tokenFirebase?: string;
 }

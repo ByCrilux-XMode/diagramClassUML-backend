@@ -1,22 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { Entorno } from '../../config/env.schema.js';
-import { Proyecto } from '../proyectos/proyecto.entity.js';
 import { ProyectosModule } from '../proyectos/proyectos.module.js';
 import { UsuariosModule } from '../usuarios/usuarios.module.js';
 import { ColaboracionController } from './colaboracion.controller.js';
 import { ColaboracionService } from './colaboracion.service.js';
-import { DocumentoColaborativo } from './documento-colaborativo.entity.js';
-import { PersistenciaColaboracionService } from './persistencia-colaboracion.service.js';
+import { PersistenciaColaboracionModule } from './persistencia-colaboracion.module.js';
 import { ServidorColaboracion } from './servidor-colaboracion.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Proyecto, DocumentoColaborativo]),
     UsuariosModule,
     ProyectosModule,
+    PersistenciaColaboracionModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -27,7 +24,6 @@ import { ServidorColaboracion } from './servidor-colaboracion.js';
     }),
   ],
   controllers: [ColaboracionController],
-  providers: [ServidorColaboracion, PersistenciaColaboracionService, ColaboracionService],
-  exports: [PersistenciaColaboracionService],
+  providers: [ServidorColaboracion, ColaboracionService],
 })
 export class ColaboracionModule {}

@@ -13,6 +13,7 @@ import { ColaboracionModule } from './modules/colaboracion/colaboracion.module.j
 import { ColaboradoresModule } from './modules/colaboradores/colaboradores.module.js';
 import { ConfigIaModule } from './modules/config-ia/config-ia.module.js';
 import { EventosModule } from './modules/eventos/eventos.module.js';
+import { NotificacionesModule } from './modules/notificaciones/notificaciones.module.js';
 import { PermisosModule } from './modules/permisos/permisos.module.js';
 import { PlanesModule } from './modules/planes/planes.module.js';
 import { ProyectosModule } from './modules/proyectos/proyectos.module.js';
@@ -23,7 +24,6 @@ import {
   opcionesThrottlerTurnos,
 } from './modules/turnos/limite-turnos.js';
 import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
-import { VersionesModule } from './modules/versiones/versiones.module.js';
 
 @Module({
   imports: [
@@ -54,13 +54,13 @@ import { VersionesModule } from './modules/versiones/versiones.module.js';
     ColaboradoresModule,
     PermisosModule,
     ColaboracionModule,
-    VersionesModule,
     EventosModule,
     ChatModule,
     PlanesModule,
     TurnosModule,
     PropuestasModule,
     ConfigIaModule,
+    NotificacionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

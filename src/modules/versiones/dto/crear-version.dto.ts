@@ -1,8 +1,13 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CrearVersionDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  nombre: string;
+  @MaxLength(150)
+  nombre?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  descripcion?: string;
 }

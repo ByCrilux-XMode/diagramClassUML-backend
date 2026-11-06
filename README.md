@@ -44,6 +44,10 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Notificaciones push (Firebase)
+
+La configuración de Firebase Admin, el registro del token FCM desde Flutter, las versiones de proyecto y los endpoints de notificaciones están documentados en [docs/notificaciones-firebase.md](docs/notificaciones-firebase.md).
+
 ## Run tests
 
 ```bash

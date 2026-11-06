@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class RegistrarUsuarioDto {
   @IsString()
@@ -21,4 +21,10 @@ export class RegistrarUsuarioDto {
   @IsNotEmpty()
   @MaxLength(100)
   apellido: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(512)
+  tokenFirebase?: string;
 }
