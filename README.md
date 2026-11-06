@@ -34,13 +34,15 @@ $ npm install
 ## Compile and run the project
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
+# development (watch mode)
 $ npm run start:dev
 
-# production mode
+# compile once
+$ npm run build
+
+# production mode (runs the compiled output)
+$ npm start
+# or
 $ npm run start:prod
 ```
 
