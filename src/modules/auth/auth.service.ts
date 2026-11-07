@@ -54,4 +54,16 @@ export class AuthService {
   private firmarToken(usuario: Usuario): Promise<string> {
     return this.jwtService.signAsync({ sub: usuario.usuarioId, username: usuario.username });
   }
+
+  /**
+   * Ticket de corta vida para autenticar el handshake del WebSocket de
+   * colaboración. No sustituye a la cookie: solo evita exponer el JWT de sesión
+   * y permite que el navegador lo adjunte como `?token=` al socket.
+   */
+  ticketColaboracion(usuario: Usuario): Promise<string> {
+    return this.jwtService.signAsync(
+      { sub: usuario.usuarioId, username: usuario.username },
+      { expiresIn: '1h' },
+    );
+  }
 }

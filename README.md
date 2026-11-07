@@ -68,17 +68,24 @@ $ npm run test:cov
 ### Cookie de sesión compartida
 
 El proxy de Next valida la sesión contra `GET /usuarios/me` con la cookie
-`tokenAcceso`. Para que el navegador envíe esa cookie al host del frontend, la
-cookie se emite con `COOKIE_DOMAIN` cuando la variable está definida.
+`tokenAcceso`. Para que el navegador envíe esa cookie al host del frontend hay
+dos caminos:
 
 | Escenario | Configuración | Resultado |
 |---|---|---|
-| Mismo host, distinto puerto (desarrollo) | sin `COOKIE_DOMAIN` | funciona: las cookies no se aíslan por puerto |
-| Subdominios (`app.x.com` + `api.x.com`) | `COOKIE_DOMAIN=.x.com` | funciona |
-| Dominios distintos (`app.com` + `api.io`) | no soportado | el proxy devuelve 503 con mensaje de configuración |
+| Proxy same-origin de Next (`/backend` → API) | `COOKIE_DOMAIN` vacío, `COOKIE_SECURE=true` | **Recomendado.** La cookie es first-party del frontend; funciona en Brave/incógnito y `/api/ia/*` puede leerla. |
+| Subdominios propios (`app.x.com` + `api.x.com`) | `COOKIE_DOMAIN=.x.com` | Funciona: misma site (eTLD+1). |
+| Dominios `*.vercel.app` entre sí | — | **No soportado**: `vercel.app` es public suffix; `COOKIE_DOMAIN=.vercel.app` se rechaza. Usa el proxy. |
 
 `COOKIE_DOMAIN` solo añade `domain`; la cookie conserva `httpOnly`, `path: '/'` y
 `secure`/`sameSite` según `COOKIE_SECURE`. Nunca se expone el token a JavaScript.
+
+Al cerrar sesión se borran **ambas** variantes (con y sin `domain`) para no dejar
+cookies huérfanas cuando `COOKIE_DOMAIN` cambió entre despliegues.
+
+El WebSocket de colaboración no puede usar la cookie first-party en el handshake
+hacia otro host: el frontend pide un ticket corto a `GET /auth/ticket-colaboracion`
+y lo adjunta como `?token=` al abrir el socket.
 
 ### Límites de uso
 

@@ -1,21 +1,28 @@
+import type { Response } from 'express';
 import { Usuario } from '../usuarios/usuario.entity.js';
 import { AuthController } from './auth.controller.js';
 import { COOKIE_TOKEN } from './cookie.constantes.js';
+
+type RespuestaMock = Response & {
+  cookie: ReturnType<typeof vi.fn>;
+  clearCookie: ReturnType<typeof vi.fn>;
+};
 
 describe('AuthController', () => {
   let controlador: AuthController;
   const authService = {
     registrarUsuario: vi.fn(),
     iniciarSesion: vi.fn(),
+    ticketColaboracion: vi.fn(),
   };
   const configService = {
     get: vi.fn(),
     getOrThrow: vi.fn(),
   };
 
-  const crearRespuestaMock = () => {
+  const crearRespuestaMock = (): RespuestaMock => {
     const respuesta = { cookie: vi.fn(), clearCookie: vi.fn() };
-    return respuesta as never;
+    return respuesta as unknown as RespuestaMock;
   };
 
   beforeEach(() => {
@@ -113,6 +120,30 @@ describe('AuthController', () => {
         path: '/',
         domain: '.midominio.com',
       });
+    });
+
+    it('borra también la variante sin dominio', () => {
+      configService.get.mockImplementation((clave: string) =>
+        clave === 'COOKIE_DOMAIN' ? '.midominio.com' : undefined,
+      );
+      const respuesta = crearRespuestaMock();
+
+      controlador.cerrarSesion(respuesta);
+
+      expect(respuesta.clearCookie).toHaveBeenCalledWith(COOKIE_TOKEN, { path: '/' });
+      expect(respuesta.clearCookie).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('ticketColaboracion', () => {
+    it('emite un ticket corto para el usuario autenticado', async () => {
+      const usuario = { usuarioId: 5, username: 'sofia' } as Usuario;
+      authService.ticketColaboracion.mockResolvedValue('ticket-corto');
+
+      const resultado = await controlador.ticketColaboracion(usuario);
+
+      expect(authService.ticketColaboracion).toHaveBeenCalledWith(usuario);
+      expect(resultado).toEqual({ token: 'ticket-corto' });
     });
   });
 });

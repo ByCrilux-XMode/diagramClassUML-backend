@@ -57,8 +57,10 @@ export function establecerCookie(
 
 export function eliminarCookie(respuesta: Response, dominio?: string | null): void {
   const domain = dominio?.trim();
-  respuesta.clearCookie(COOKIE_TOKEN, {
-    path: '/',
-    ...(domain ? { domain } : {}),
-  });
+  const base = { path: '/' };
+  // La cookie pudo emitirse con o sin `Domain` (por ejemplo, si COOKIE_DOMAIN
+  // cambió entre despliegues). Se borran ambas variantes para no dejar sesiones
+  // huérfanas que sigan autenticando aunque la persona haya cerrado sesión.
+  if (domain) respuesta.clearCookie(COOKIE_TOKEN, { ...base, domain });
+  respuesta.clearCookie(COOKIE_TOKEN, base);
 }
